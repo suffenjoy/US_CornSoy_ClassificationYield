@@ -22,7 +22,7 @@
 - CSB_subset.py: 将CSB数据分割为各个州的shapefile格式并导出。
 - utils.py: 包含一些常用的函数，如计算植被指数，清理从GEE导出的数据，清理CSB数据等。
 - ts_GEE.js: 从GEE提取Sentinel-2 surface reflectance时间序列的代码样本(Iowa州，2022)。
-- CSB_based_Mapping_IL.ipynb: 将不同数据集结合，训练模型，预测种植面积。数据基于伊利诺伊州（Illinois）。
+- Preseason_Prediction/CSB_based_Mapping_IL.ipynb: 将不同数据集结合，训练模型，预测种植面积。数据基于伊利诺伊州（Illinois）。
 
 
 ## 联系
