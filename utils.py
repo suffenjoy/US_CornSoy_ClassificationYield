@@ -82,25 +82,33 @@ def calc_NDRE(df):
 def calc_Clgreen(df):
     NIR = df['B8']
     Green = df['B3']
-    return NIR / Green-1
+    Clgreen = NIR / Green - 1
+    Clgreen = Clgreen.clip(-1, 10)
+    return Clgreen
 
 def calc_Clrededge(df):
     NIR = df['B8']
     RedEdge = df['B5']
-    return NIR / RedEdge-1
+    Clrededge = NIR / RedEdge - 1
+    Clrededge = Clrededge.clip(-1, 10)
+    return Clrededge
 
 def calc_Datt99(df):
     NIR = df['B8']
     RedEdge = df['B5']
     Red = df['B4']
-    return (NIR - RedEdge) / (NIR - Red)
+    Datt99 = (NIR - RedEdge) / (NIR - Red)
+    Datt99 = Datt99.clip(-1, 1)
+    return Datt99
 
 def calc_REP(df):
     Rededge1 = df['B5']
     Rededge2 = df['B6']
     Rededge3 = df['B7']
     Red = df['B4']
-    return 705+(35*(0.5*(Red + Rededge3) - Rededge1)/(Rededge2 - Rededge1))
+    REP = 705+(35*(0.5*(Red + Rededge3) - Rededge1)/(Rededge2 - Rededge1))
+    REP = REP.clip(670, 780)
+    return REP
 
 def calc_GWCCI(df):
     NIR = df['B8']
@@ -152,7 +160,7 @@ def clean_gee(df, sdate = "03-01", edate = "05-31"):
     ## Filter the Bands if there are any values that are less than 0 or greater than 1
     Bands = ['B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8', 'B11']
     for band in Bands:
-        df = df[(df[band] >= 0) & (df[band] <= 1)]
+        df = df[(df[band] > 0) & (df[band] < 1)]
     ## Apply the VIs to the dataframe
     df = apply_VIs(df)
     VIs = ['NDWI', 'NDVI', 'LSWI', 'NDRE', 'Clgreen', 'Clrededge', 'Datt99', 'REP', 'GWCCI']
@@ -215,66 +223,21 @@ def long_to_wide(df_long, Output = False, path_out = None):
     return(df_wide)
 
 
-# ML model training
-# ## Preseason model training 
-# def ml_model_preseason(csbdf, model, yr, X, Y, Xnew = None, Ynew = None):
-#     """
-#     csbdf: raw csb dataframe (Only used for record the results)
-#     model: model name, e.g. 'rf', 'lgb', 'xgb'
-#     yr: prediction year, e.g. 22 for 2022
-#     X: X_train
-#     Y: Y_train
-#     Xnew: X_test
-#     Ynew: Y_test
-#     """
-#     # #Generate dataframe 
-    
-#     #Train the model
-#     clf_rf = RandomForestClassifier(n_estimators=100, max_depth=5, random_state=0)
-#     clf_rf.fit(X, Y)
-#     Ypred_new = clf_rf.predict(Xnew)
-#     if Ynew is not None:
-#         Accuracy = accuracy_score(Ynew, Ypred_new)
-#         CM = confusion_matrix(Ynew, Ypred_new)
-#         print('Accuracy: ', Accuracy)
-#         # print('Confusion Matrix: ', CM)
-    
-#     #Calculate total acres of each class
-#     df_results = csbdf.copy()
-#     df_results['R{}_PED'.format(yr)] = Ypred_new
-#     #Predicted total acres
-#     df_corn1 = df_results[df_results['R{}_PED'.format(yr)] == 0].groupby(['CNTYFIPS', 'CNTY']).agg({'CSBACRES': 'sum'}).reset_index() #Corn
-#     df_corn1.rename(columns={'CSBACRES': 'CornAcres_Pred'}, inplace=True)
-#     df_soy1 = df_results[df_results['R{}_PED'.format(yr)] == 2].groupby(['CNTYFIPS', 'CNTY']).agg({'CSBACRES': 'sum'}).reset_index() #Soybean
-#     df_soy1.rename(columns={'CSBACRES': 'SoyAcres_Pred'}, inplace=True)
-#     if Ynew is not None:
-#         #Actual total acres
-#         df_corn2 = df_results[df_results['R{}'.format(yr)] == 'Corn'].groupby(['CNTYFIPS', 'CNTY']).agg({'CSBACRES': 'sum'}).reset_index() #Corn
-#         df_corn2.rename(columns={'CSBACRES': 'CornAcres_Actual'}, inplace=True)
-#         df_soy2 = df_results[df_results['R{}'.format(yr)] == 'Soybean'].groupby(['CNTYFIPS', 'CNTY']).agg({'CSBACRES': 'sum'}).reset_index() #Soybean
-#         df_soy2.rename(columns={'CSBACRES': 'SoyAcres_Actual'}, inplace=True)
-#         #Merge the two dataframes
-#         df_corn = pd.merge(df_corn1, df_corn2, how='inner', left_on=['CNTYFIPS','CNTY'], right_on=['CNTYFIPS','CNTY'])
-#         df_soy = pd.merge(df_soy1, df_soy2, how='inner', left_on=['CNTYFIPS','CNTY'], right_on=['CNTYFIPS','CNTY'])
-#         #Sum of the total acres
-#         Sum_Corn_Pred = df_corn['CornAcres_Pred'].sum()
-#         Sum_Corn_Actual = df_corn['CornAcres_Actual'].sum()
-#         Sum_Soy_Pred = df_soy['SoyAcres_Pred'].sum()
-#         Sum_Soy_Actual = df_soy['SoyAcres_Actual'].sum()
-#         df_sum = pd.DataFrame({'YR':[yr],'Sum_Corn_Pred': [Sum_Corn_Pred], 'Sum_Corn_Actual': [Sum_Corn_Actual], 'Sum_Soy_Pred': [Sum_Soy_Pred], 'Sum_Soy_Actual': [Sum_Soy_Actual]})
-#         df_sum['Diff_Corn'] = df_sum['Sum_Corn_Pred'] - df_sum['Sum_Corn_Actual']
-#         df_sum['Diff_Soy'] = df_sum['Sum_Soy_Pred'] - df_sum['Sum_Soy_Actual']
-#         df_sum['Diff_Corn_Percent'] = df_sum['Diff_Corn']/df_sum['Sum_Corn_Actual']*100
-#         df_sum['Diff_Soy_Percent'] = df_sum['Diff_Soy']/df_sum['Sum_Soy_Actual']*100
-#         print(df_sum)
-        
-#         return clf_rf, Ypred_new, Accuracy, CM, df_corn, df_soy, df_sum
-#     else:
-#         return clf_rf, Ypred_new, df_corn1, df_soy1
-
-
 ## With both preseason and in-season data
-def ml_model_base(csbdf, model, yr, X, Y, test_size = 0.7, random_state = 777,Xnew=None, Ynew = None):
+def ml_model_base(df, csbdf, model, yr, X, Y, test_size = 0.7, random_state = 777,Xnew=None, Ynew = None):
+    """
+    Build basic ML model for corn/soybean classification
+    df: raw XY dataframe (used for record the results)
+    csbdf: raw csb dataframe (used for record the results)
+    model: model name, e.g. 'rf', 'lgb'
+    yr: prediction year, e.g. 22 for 2022
+    X: X_train
+    Y: Y_train
+    test_size: test size for train_test_split, e.g. 0.7
+    random_state: random state for train_test_split, e.g. 777
+    Xnew: X of new year 
+    Ynew: Y of new year 
+    """
     if test_size == 0:
         X_train = X
         Y_train = Y
@@ -300,7 +263,7 @@ def ml_model_base(csbdf, model, yr, X, Y, test_size = 0.7, random_state = 777,Xn
                   'feature_fraction': 0.9,}
         # Train the model 
         num_round = 100
-        clf_model = lgb.train(params, lgb.Dataset(X, Y), num_round, early_stopping_rounds=10)
+        clf_model = lgb.train(params, lgb.Dataset(X, Y), num_round)
         if test_size == 0:
             # New Years data
             Ypred_new = clf_model.predict(Xnew, num_iteration=clf_model.best_iteration)
@@ -321,8 +284,8 @@ def ml_model_base(csbdf, model, yr, X, Y, test_size = 0.7, random_state = 777,Xn
     #     return clf_model, Ypred_new
     # else:
     #     return clf_model, Ypred_test, Ypred_new
-    # Calculate accuracy and confusion matrix
-    
+
+    ## Calculate accuracy and confusion matrix
     if test_size != 0:
         Accuracy = accuracy_score(Y_test, Ypred_test)
         CM = confusion_matrix(Y_test, Ypred_test)
@@ -333,19 +296,20 @@ def ml_model_base(csbdf, model, yr, X, Y, test_size = 0.7, random_state = 777,Xn
         CM_new = confusion_matrix(Ynew, Ypred_new)
         print('Accuracy new set: ', Accuracy_new)
         print('Confusion Matrix new set: ', CM_new)
-    # Calculate total acres of each class
-    df_results = csbdf.copy()
+    # # Calculate total acres of each class
+    df_results = df[['CSBID']].copy()
     df_results['R{}_PED'.format(yr)] = Ypred_new
-    #Predicted total acres
+    df_results = pd.merge(df_results, csbdf, how = "inner", left_on=['CSBID'], right_on=['CSBID'])
     df_corn1 = df_results[df_results['R{}_PED'.format(yr)] == 0].groupby(['CNTYFIPS', 'CNTY']).agg({'CSBACRES': 'sum'}).reset_index() #Corn
     df_corn1.rename(columns={'CSBACRES': 'CornAcres_Pred'}, inplace=True)
     df_soy1 = df_results[df_results['R{}_PED'.format(yr)] == 2].groupby(['CNTYFIPS', 'CNTY']).agg({'CSBACRES': 'sum'}).reset_index() #Soybean
     df_soy1.rename(columns={'CSBACRES': 'SoyAcres_Pred'}, inplace=True)
+
     if Ynew is not None:
         #Actual total acres
-        df_corn2 = df_results[df_results['R{}'.format(yr)] == 'Corn'].groupby(['CNTYFIPS', 'CNTY']).agg({'CSBACRES': 'sum'}).reset_index() #Corn
+        df_corn2 = df_results[(df_results['R{}'.format(yr)] == 0) | (df_results['R{}'.format(yr)] == 'Corn')].groupby(['CNTYFIPS', 'CNTY']).agg({'CSBACRES': 'sum'}).reset_index() #Corn
         df_corn2.rename(columns={'CSBACRES': 'CornAcres_Actual'}, inplace=True)
-        df_soy2 = df_results[df_results['R{}'.format(yr)] == 'Soybean'].groupby(['CNTYFIPS', 'CNTY']).agg({'CSBACRES': 'sum'}).reset_index() #Soybean
+        df_soy2 = df_results[(df_results['R{}'.format(yr)] == 2) | (df_results['R{}'.format(yr)] == 'Soybean')].groupby(['CNTYFIPS', 'CNTY']).agg({'CSBACRES': 'sum'}).reset_index() #Soybean
         df_soy2.rename(columns={'CSBACRES': 'SoyAcres_Actual'}, inplace=True)
         #Merge the two dataframes
         df_corn = pd.merge(df_corn1, df_corn2, how='inner', left_on=['CNTYFIPS','CNTY'], right_on=['CNTYFIPS','CNTY'])
@@ -374,7 +338,7 @@ def ml_model_base(csbdf, model, yr, X, Y, test_size = 0.7, random_state = 777,Xn
         
 
 
-def hyperparameter_tuning(X, y, model_type='rf', n_iter=20, cv=5, subset_frac = 0.1, random_state=None):
+def hyperparameter_tuning(X, y, model_type='rf', n_iter=20, cv=5, subset_frac = 0.1, random_state=777):
     """
     Perform hyperparameter tuning using RandomizedSearchCV for RF, LightGBM, or XGBoost.
     
