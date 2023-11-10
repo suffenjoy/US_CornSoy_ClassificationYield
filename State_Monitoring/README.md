@@ -1,4 +1,4 @@
-# 基于GEE python API提取美国大豆玉米产区监测
+# 基于GEE python API提取美国大豆玉米产区监测数据
 
 - 现有数据来源：
   - LAI和FPAR数据来源为MCD15A3H.061 MODIS Leaf Area Index/FPAR 4-Day Global 500m； 
