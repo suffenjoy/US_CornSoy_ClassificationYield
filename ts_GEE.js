@@ -1,10 +1,13 @@
+var IA = ee.FeatureCollection("projects/suffenjoy7/assets/csb_IA_2022");
 //Extract time series from CSB field boundaries
 var states = ee.FeatureCollection('TIGER/2016/States');
-var Illinois = states.filter(ee.Filter.eq('NAME', 'Illinois'));
+// var counties = ee.FeatureCollection('TIGER/2016/Counties');
+
+
+var Iowa = states.filter(ee.Filter.eq('NAME', 'Iowa'));
 
 //var dataset = ee.FeatureCollection('TIGER/2016/Counties');
-print(Illinois, "Illinois");
-print(Mclean.size(), "Mclean #fields");
+print(Iowa, "Iowa");
 
 function maskS2clouds(image) {
   var qa = image.select('QA60');
@@ -21,8 +24,8 @@ function maskS2clouds(image) {
 }
 
 var s2 = ee.ImageCollection('COPERNICUS/S2_SR_HARMONIZED')
-                  .filterDate('2022-01-01', '2022-08-31')
-                  .filterBounds(Illinois)
+                  .filterDate('2022-01-01', '2022-07-01')
+                  .filterBounds(Iowa)
                   // Pre-filter to get less cloudy granules.
                   .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE',20))
                   .map(maskS2clouds)
@@ -32,11 +35,11 @@ var s2 = ee.ImageCollection('COPERNICUS/S2_SR_HARMONIZED')
 print(s2.first(), "s2 first image");
 
 
-//var shapefile = Mclean.limit(10);
-var shapefile = Mclean;
+//var shapefile = IL;
+var shapefile = IA;
 Map.addLayer(shapefile);
 print(shapefile.limit(10), "shapefile example");
-
+print(shapefile.size(), "shapefile size");
 
 var s2_ts = s2.map(function(image) {
     return image.reduceRegions({
@@ -61,7 +64,7 @@ print(s2_ts.limit(2), "s2_ts example");
 
 Export.table.toDrive({
   collection: s2_ts,
-  description: 's2_ts_2022',
+  description: 's2_ts_2022_IA',
   folder: 'CSB_TimeSeries',
   fileFormat: 'CSV'
 });
